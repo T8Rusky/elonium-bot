@@ -110,6 +110,49 @@ bot.onText(/\/register (.+)/, (msg, match) => {
   bot.sendMessage(chatId, `✅ Wallet address *${walletAddress}* registered successfully.`, { parse_mode: "Markdown" });
 });
 
+// Referral tracking via /start ref_xxxxx
+bot.onText(/\/start(?:\s+ref_(\d+))?/, (msg, match) => {
+  const chatId = msg.chat.id.toString();
+  const referrerId = match[1];
+
+  if (!users[chatId]) {
+    users[chatId] = {
+      id: chatId,
+      totalRewards: 0,
+      modulesCompleted: 0,
+      invites: 0,
+      referredBy: null,
+      lastActive: new Date().toLocaleDateString("en-US")
+    };
+  }
+
+  if (referrerId && referrerId !== chatId && !users[chatId].referredBy) {
+    users[chatId].referredBy = referrerId;
+
+    if (!users[referrerId]) {
+      users[referrerId] = {
+        id: referrerId,
+        totalRewards: 0,
+        modulesCompleted: 0,
+        invites: 0,
+        referredBy: null,
+        lastActive: "Never"
+      };
+    }
+
+    users[referrerId].invites += 1;
+    users[referrerId].totalRewards += 10;
+    users[referrerId].lastActive = new Date().toLocaleDateString("en-US");
+
+    bot.sendMessage(referrerId, `🎉 You earned 10 $ELONI!\nUser ${chatId} joined using your invite link.`);
+  }
+
+  users[chatId].lastActive = new Date().toLocaleDateString("en-US");
+  saveUsers();
+
+  bot.sendMessage(chatId, `🌐 Welcome to Elonium AI!\nYou can now /register your wallet and /reward daily.\n\nUse /help to explore commands.`);
+});
+
 bot.onText(/\/help/, (msg) => {
   const helpText = `Commands:
 /start - Start the bot
@@ -163,15 +206,20 @@ bot.onText(/\/nextclaim/, (msg) => {
 bot.onText(/\/stats/, (msg) => {
   const chatId = msg.chat.id.toString();
   const user = users[chatId];
-  if (!user) return bot.sendMessage(chatId, "❌ No data. Use /start.");
 
-  bot.sendMessage(chatId, `📊 Your Stats:
+  if (!user) {
+    return bot.sendMessage(chatId, "❌ No data found. Use /start first.");
+  }
+
+  bot.sendMessage(chatId,
+    `📊 Your Stats:
 Wallet: ${user.wallet || "Not set"}
 Rewards: ${user.totalRewards}
-Modules: ${user.modulesCompleted}
-Invites: ${user.invites}
+Modules Completed: ${user.modulesCompleted}
+Invites: ${user.invites || 0}
 Last Active: ${user.lastActive}
-Referred By: ${user.referredBy || "None"}`);
+Referred By: ${user.referredBy || "None"}`
+  );
 });
 
 bot.onText(/\/backuplist/, (msg) => {
