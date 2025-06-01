@@ -1,0 +1,202 @@
+require("dotenv").config();
+const TelegramBot = require("node-telegram-bot-api");
+const fs = require("fs");
+
+const token = process.env.TELEGRAM_BOT_TOKEN;
+const adminId = process.env.ADMIN_ID || "your_actual_admin_id_here";
+if (!token) {
+  console.error("TELEGRAM_BOT_TOKEN is not set in environment variables.");
+  process.exit(1);
+}
+const bot = new TelegramBot(token, { polling: true });
+
+let users = {};
+const usersFile = "users.json";
+
+const loadUsers = () => {
+  if (fs.existsSync(usersFile)) {
+    try {
+      users = JSON.parse(fs.readFileSync(usersFile, "utf8"));
+    } catch (error) {
+      console.error("Error loading users.json:", error);
+      users = {};
+    }
+  }
+};
+
+const saveUsers = () => {
+  try {
+    fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
+  } catch (error) {
+    console.error("Error saving users.json:", error);
+  }
+};
+
+loadUsers();
+
+bot.on("webhook_error", (error) => console.error("Webhook error:", error));
+
+bot.onText(/\/start/, (msg) => {
+  const chatId = msg.chat.id.toString();
+  const args = msg.text?.split(" ");
+  if (!users[chatId]) {
+    users[chatId] = { totalRewards: 0, modulesCompleted: 0, lastActive: "Never", invites: 0, referredBy: null };
+  }
+
+  if (args && args.length > 1 && args[1].startsWith("ref_")) {
+    const referrerId = args[1].replace("ref_", "");
+    if (referrerId !== chatId && !users[chatId].referredBy) {
+      users[chatId].referredBy = referrerId;
+      const referrer = users[referrerId] || { totalRewards: 0, modulesCompleted: 0, lastActive: "Never", invites: 0 };
+      referrer.invites += 1;
+      referrer.totalRewards += 10;
+      referrer.lastActive = new Date().toLocaleDateString();
+      users[referrerId] = referrer;
+      saveUsers();
+      bot.sendMessage(referrerId, `🎉 You earned 10 $ELONI! User ${chatId} joined using your invite link!`);
+    }
+  }
+
+  users[chatId].lastActive = new Date().toLocaleDateString();
+  saveUsers();
+
+  bot.sendMessage(chatId, `🌟 Welcome to Elonium AI! 🌟\nWe’re building the future of AI-powered finance on Solana. Earn $ELONI, learn, and grow with us!`, {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "Visit Website", url: "https://www.eloniumai.io" }],
+        [{ text: "Start Learning", url: "https://www.eloniumai.io/learn" }],
+        [{ text: "Join Our Twitter", url: "https://twitter.com/eloniumai" }],
+        [{ text: "Get Help", callback_data: "support" }],
+      ],
+      keyboard: [
+        ["/help", "/learn"],
+        ["/reward", "/stats"],
+        ["/reset", "/news"],
+        ["/invite"]
+      ],
+      resize_keyboard: true,
+    },
+  });
+});
+
+bot.on("callback_query", (query) => {
+  const chatId = query.message.chat.id;
+  if (query.data === "support") {
+    bot.sendMessage(chatId, "Need help? Contact us at support@eloniumai.io or use /support for more options.");
+  }
+  bot.answerCallbackQuery(query.id);
+});
+
+bot.onText(/\/help/, (msg) => {
+  bot.sendMessage(msg.chat.id, `Commands:\n/start - Start the bot\n/help - Show this message\n/reward - Claim $ELONI\n/learn - Learn-to-Earn\n/stats - View your stats\n/register - Register your wallet\n/snapshot - Admin only\n/id - View your Telegram user ID`);
+});
+
+bot.onText(/\/reward/, (msg) => {
+  const chatId = msg.chat.id.toString();
+  const user = users[chatId] || { totalRewards: 0, modulesCompleted: 0, lastActive: "Never", invites: 0 };
+  user.totalRewards += 15;
+  user.modulesCompleted += 1;
+  user.lastActive = new Date().toLocaleDateString();
+  users[chatId] = user;
+  saveUsers();
+  bot.sendMessage(chatId, `Your latest reward: ${user.totalRewards} $ELONI (check /learn on https://www.eloniumai.io/ to earn more!)`);
+});
+
+bot.onText(/\/learn/, (msg) => {
+  bot.sendMessage(msg.chat.id, "Earn $ELONI by learning! Visit: https://www.eloniumai.io/learn");
+});
+
+bot.onText(/\/stats/, (msg) => {
+  const chatId = msg.chat.id.toString();
+  const user = users[chatId] || {};
+  bot.sendMessage(chatId, `Your Stats:\nTotal Rewards: ${user.totalRewards || 0} $ELONI\nModules Completed: ${user.modulesCompleted || 0}\nInvites: ${user.invites || 0}\nLast Active: ${user.lastActive || 'Never'}\nReferred By: ${user.referredBy || 'None'}\nWallet: ${user.wallet || 'Not registered'}`);
+});
+
+bot.onText(/\/reset/, (msg) => {
+  const chatId = msg.chat.id.toString();
+  users[chatId] = { totalRewards: 0, modulesCompleted: 0, lastActive: "Never", invites: 0, referredBy: null };
+  saveUsers();
+  bot.sendMessage(chatId, "Your stats have been reset!");
+});
+
+bot.onText(/\/support/, (msg) => {
+  bot.sendMessage(msg.chat.id, "Need assistance? Email us at support@eloniumai.io or join our Discord: https://discord.gg/eloniumai");
+});
+
+bot.onText(/\/news/, (msg) => {
+  bot.sendMessage(msg.chat.id, "🎉 Elonium AI News 🎉\n- March 15, 2025: Launched Learn-to-Earn with $ELONI rewards!\n- Coming Soon: NFT staking boosts. Stay tuned!");
+});
+
+bot.onText(/\/invite/, (msg) => {
+  const chatId = msg.chat.id.toString();
+  const inviteLink = `https://t.me/EloniumAIBot?start=ref_${chatId}`;
+  bot.sendMessage(chatId, `Invite friends to earn more $ELONI!\nYour invite link: ${inviteLink}\nYou'll earn 10 $ELONI per successful referral!\n(Track invites in /stats)`);
+});
+bot.onText(/\/register (.+)/, (msg, match) => {
+  const chatId = msg.chat.id.toString();
+  const walletAddress = match[1];
+
+  if (!walletAddress || walletAddress.length < 10) {
+    bot.sendMessage(chatId, "❌ Please provide a valid wallet address.");
+    return;
+  }
+
+  users[chatId] = {
+    id: chatId,
+    wallet: walletAddress,
+    totalRewards: users[chatId]?.totalRewards || 0,
+    modulesCompleted: users[chatId]?.modulesCompleted || 0,
+    lastActive: new Date().toLocaleDateString(),
+    referredBy: users[chatId]?.referredBy || null,
+    registeredAt: new Date().toISOString()
+  };
+
+  fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
+  bot.sendMessage(chatId, `✅ Wallet address ${walletAddress} registered successfully.`);
+});
+
+bot.onText(/\/register (.+)/, (msg, match) => {
+  const chatId = msg.chat.id.toString();
+  const wallet = match[1];
+  if (!wallet || wallet.length < 32) return bot.sendMessage(chatId, "⚠️ Invalid wallet address. Please use: /register <wallet_address>");
+  if (!users[chatId]) users[chatId] = { totalRewards: 0, modulesCompleted: 0, lastActive: "Never", invites: 0, referredBy: null };
+  users[chatId].wallet = wallet;
+  saveUsers();
+  bot.sendMessage(chatId, `✅ Wallet registered: ${wallet}`);
+});
+
+bot.onText(/\/snapshot/, (msg) => {
+  const chatId = msg.chat.id.toString();
+  if (chatId !== adminId) return bot.sendMessage(chatId, "❌ You are not authorized to run this command.");
+
+  const snapshot = Object.entries(users).map(([id, data]) => ({
+    userId: id,
+    username: data.username || null,
+    wallet: data.wallet || null,
+    totalRewards: data.totalRewards || 0,
+    modulesCompleted: data.modulesCompleted || 0,
+    lastActive: data.lastActive || "Never",
+  }));
+
+  const filename = `snapshot-${Date.now()}.json`;
+  fs.writeFileSync(filename, JSON.stringify(snapshot, null, 2));
+  bot.sendMessage(chatId, `📸 Snapshot saved as: ${filename}`);
+});
+
+bot.onText(/\/id/, (msg) => {
+  bot.sendMessage(msg.chat.id, `🧠 Your Telegram user ID: ${msg.from.id}`);
+});
+
+bot.on("message", (msg) => {
+  const chatId = msg.chat.id;
+  if (!msg.text?.startsWith("/")) {
+    bot.sendMessage(chatId, "Unknown command. Use /help for options.");
+  }
+});
+
+bot.on("polling_error", (error) => console.error("Polling error:", error));
+
+process.once("SIGINT", () => bot.stop("SIGINT"));
+process.once("SIGTERM", () => bot.stop("SIGTERM"));
+
+console.log("✅ Elonium AI Telegram bot is running...");

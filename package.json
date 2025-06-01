@@ -1,0 +1,16 @@
+{
+  "name": "elonium-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot for EloniumAI",
+  "main": "elonium-bot.js",
+  "scripts": {
+    "start": "node elonium-bot.js"
+  },
+  "keywords": ["telegram", "bot", "elonium", "solana", "crypto"],
+  "author": "Tate Rusky",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "node-telegram-bot-api": "^0.66.0"
+  }
+}
