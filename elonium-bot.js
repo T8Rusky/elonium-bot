@@ -282,7 +282,7 @@ bot.onText(/\/help/, (msg) => {
 
   const chatId = msg.chat.id.toString();
   const isAdmin = ADMIN_IDS.includes(chatId);
-  let helpText = `Commands:
+let helpText = `Commands:
 /start - Start the bot
 /help - Show this menu
 /reward - Claim daily $ELONI
@@ -291,7 +291,8 @@ bot.onText(/\/help/, (msg) => {
 /register - Register wallet
 /learn - Learn-to-Earn
 /id - Your Telegram ID
-/invite - Get your invite link`;
+/invite - Invite friends (coming soon)
+/links - Project links`;  
 
   if (isAdmin) {
     helpText += `
@@ -455,8 +456,22 @@ bot.onText(/\/invite/, (msg) => {
   if (botState.maintenanceMode && !ADMIN_IDS.includes(msg.chat.id.toString())) return;
 
   const chatId = msg.chat.id.toString();
- const inviteLink = `https://t.me/AiEloniumBot?start=ref_${chatId}`;
-  bot.sendMessage(chatId, `📩 Your Invite Link:\n${inviteLink}\nShare this link to earn 10 $ELONI per referral!`);
+  bot.sendMessage(
+    chatId,
+    `📩 Invite Feature Coming Soon!\n\n` +
+    `Invite your friends to join Elonium AI and earn $ELONI rewards for each referral. ` +
+    `Stay tuned for the launch of our referral program! 🚀`,
+    {
+      reply_markup: {
+        keyboard: [
+          ['/links', '/invite'],
+          ['/help', '/learn'],
+          ['/reward', '/stats'],
+        ],
+        resize_keyboard: true,
+      },
+    }
+  );
 });
 
 // Command: /learn (Placeholder for Learn-to-Earn)
@@ -467,6 +482,28 @@ bot.onText(/\/learn/, (msg) => {
     msg.chat.id,
     '📚 Learn-to-Earn Modules\nComing soon! Complete AI finance modules to earn $ELONI rewards.'
   );
+});
+
+// Command: /links
+bot.onText(/\/links/, (msg) => {
+  if (botState.maintenanceMode && !ADMIN_IDS.includes(msg.chat.id.toString())) return;
+
+  const chatId = msg.chat.id.toString();
+  const linksMessage = `🔗 Elonium AI Links\n\n` +
+                      `🌐 Website: https://eloniumai.io\n` +
+                      `📩 Telegram Group: https://t.me/EloniumAICommunity\n` +
+                      `🐦 Twitter: https://twitter.com/EloniumAI`;
+
+  bot.sendMessage(chatId, linksMessage, {
+    reply_markup: {
+      keyboard: [
+        ['/links', '/invite'],
+        ['/help', '/learn'],
+        ['/reward', '/stats'],
+      ],
+      resize_keyboard: true,
+    },
+  });
 });
 
 // Handle Unknown Commands
