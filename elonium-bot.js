@@ -455,7 +455,7 @@ bot.onText(/\/invite/, (msg) => {
   if (botState.maintenanceMode && !ADMIN_IDS.includes(msg.chat.id.toString())) return;
 
   const chatId = msg.chat.id.toString();
-  const inviteLink = `https://t.me/EloniumAIBot?start=ref_${chatId}`;
+  const inviteLink = `https://t.me/EloniumAIAssistant?start=ref_${chatId}`;
   bot.sendMessage(chatId, `📩 Your Invite Link:\n${inviteLink}\nShare this link to earn 10 $ELONI per referral!`);
 });
 
