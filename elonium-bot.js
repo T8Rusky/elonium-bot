@@ -427,7 +427,6 @@ bot.onText(/\/restart/, (msg) => {
 bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg, match) => {
     const chatId = msg.chat.id.toString();
     const userId = msg.from.id.toString();
-    const referrerId = match && match[1];
     const isAdmin = ADMIN_IDS.includes(userId);
 
     if (botState.maintenanceMode && !isAdmin) {
@@ -436,9 +435,10 @@ bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg, match) => {
 
     // Human verification check (for group users)
     if (!users[userId]?.verified && (msg.chat.type === 'group' || msg.chat.type === 'supergroup') && !isAdmin) {
-        return bot.sendMessage(chatId, '🔒 You must complete the group verification process first! Please check the welcome message sent when you joined or contact an admin for assistance.', {
+        bot.sendMessage(chatId, '🔒 You must complete the group verification process first! Please check the welcome message sent when you joined or contact an admin for assistance.', {
             reply_to_message_id: msg.message_id
         });
+        return;
     }
 
     // Initialize or update user
@@ -464,33 +464,10 @@ bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg, match) => {
     users[userId].lastActive = new Date().toLocaleDateString('en-US');
     saveUsers();
 
-    // Handle referral
-    if (referrerId && referrerId !== userId && !users[userId].referredBy) {
-        if (!users[referrerId]) {
-            users[referrerId] = {
-                id: referrerId,
-                first_name: 'Unknown',
-                username: 'Unknown',
-                language_code: 'en',
-                totalRewards: 0,
-                modulesCompleted: 0,
-                invites: 0,
-                referredBy: null,
-                lastActive: 'Never',
-                verified: false,
-            };
-        }
-
-        users[userId].referredBy = referrerId;
-        users[referrerId].invites = (users[referrerId].invites || 0) + 1;
-        users[referrerId].totalRewards = (users[referrerId].totalRewards || 0) + 10;
-        users[referrerId].lastActive = new Date().toLocaleDateString('en-US');
-
-        try {
-            await bot.sendMessage(referrerId, `🎉 You earned 10 $ELONI!\nUser ${msg.from.first_name || userId} joined using your invite link.`);
-        } catch (error) {
-            console.error(`Error sending referral message to ${referrerId}:`, error.message);
-        }
+    // Placeholder for referral system (Phase 2)
+    const referrerId = match && match[1];
+    if (referrerId && referrerId !== userId) {
+        bot.sendMessage(chatId, '📩 Referral noted. Referral rewards will be active in Phase 2.');
     }
 
     // Send welcome message
