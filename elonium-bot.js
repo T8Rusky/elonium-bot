@@ -428,12 +428,23 @@ bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg, match) => {
     const chatId = msg.chat.id.toString();
     const userId = msg.from.id.toString();
     const referrerId = match[1];
-    const isAdmin = ADMIN_IDS.includes(userId);
+    const isAdmin = ADMIN_IDS.includes(userId); // Single declaration
 
+    // Check verification only for non-admins in groups/supergroups
+    if (!users[userId]?.verified && (msg.chat.type === 'group' || msg.chat.type === 'supergroup') && !isAdmin) {
+        bot.sendMessage(chatId, `🔒 You must complete the group verification process first! Please check the welcome message sent when you joined or contact an admin for assistance.`, {
+            reply_to_message_id: msg.message_id
+        });
+        return;
+    }
+
+    // Maintenance mode check for non-admins
     if (botState.maintenanceMode && !isAdmin) {
         bot.sendMessage(chatId, '⚙️ Bot is in maintenance mode. Please try again later.');
         return;
     }
+    // [Rest of the /start command: user initialization, referral handling, welcome message]
+});
 
     // Initialize user if not exists (or update info for existing user)
     if (!users[userId]) {
