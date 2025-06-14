@@ -428,7 +428,7 @@ bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg, match) => {
     const chatId = msg.chat.id.toString();
     const userId = msg.from.id.toString();
     const referrerId = match[1];
-    const isAdmin = ADMIN_IDS.includes(userId); // Single declaration
+    const isAdmin = ADMIN_IDS.includes(userId);
 
     // Check verification only for non-admins in groups/supergroups
     if (!users[userId]?.verified && (msg.chat.type === 'group' || msg.chat.type === 'supergroup') && !isAdmin) {
@@ -443,10 +443,8 @@ bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg, match) => {
         bot.sendMessage(chatId, '⚙️ Bot is in maintenance mode. Please try again later.');
         return;
     }
-    // [Rest of the /start command: user initialization, referral handling, welcome message]
-});
 
-    // Initialize user if not exists (or update info for existing user)
+    // Initialize or update user
     if (!users[userId]) {
         users[userId] = {
             id: userId,
@@ -469,6 +467,54 @@ bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg, match) => {
         saveUsers();
     }
 
+    // Handle referral
+    if (referrerId && referrerId !== userId && !users[userId].referredBy) {
+        if (!users[referrerId]) {
+            users[referrerId] = {
+                id: referrerId,
+                first_name: 'Unknown',
+                username: 'Unknown',
+                language_code: 'en',
+                totalRewards: 0,
+                modulesCompleted: 0,
+                invites: 0,
+                referredBy: null,
+                lastActive: 'Never',
+                verified: false,
+            };
+        }
+        users[userId].referredBy = referrerId;
+        users[referrerId].invites = (users[referrerId].invites || 0) + 1;
+        users[referrerId].totalRewards = (users[referrerId].totalRewards || 0) + 10;
+        users[referrerId].lastActive = new Date().toLocaleDateString('en-US');
+        try {
+            await bot.sendMessage(referrerId, `🎉 You earned 10 $ELONI!\nUser ${msg.from.first_name || userId} joined using your invite link.`);
+        } catch (error) {
+            console.error(`Error sending referral message to ${referrerId}:`, error.message);
+        }
+        saveUsers();
+    }
+
+    // Update last active
+    users[userId].lastActive = new Date().toLocaleDateString('en-US');
+    saveUsers();
+
+    // Send welcome message
+    bot.sendMessage(
+        chatId,
+        `🌐 Welcome to Elonium AI\nYou're now part of the next-gen AI x DeFi revolution on Solana.\n\n🚀 Earn $ELONI\n📚 Learn & grow with AI modules\n🔒 Stake, vote, and shape the future\n🌟 Early supporters like you will be remembered\n\n🔗 Explore: https://eloniumai.io | https://twitter.com/EloniumAI`,
+        {
+            reply_markup: {
+                keyboard: [
+                    ['/help', '/learn'],
+                    ['/reward', '/stats'],
+                    ['/register', '/links'],
+                ],
+                resize_keyboard: true,
+            },
+        }
+    );
+});
 
 // Human verification check for group interactions (handled by new_chat_members for new members)
 // If a user attempts /start in a group and is not verified, prompt them to complete group verification
