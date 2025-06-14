@@ -487,14 +487,6 @@ bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg, match) => {
     );
 });
 
-   // Referral placeholder — full system coming in Phase 2
-if (referrerId && referrerId !== userId) {
-    bot.sendMessage(chatId, '📩 Referral noted. Referral rewards will be activated in Phase 2.');
-
-    // Optional: log for manual review later
-    console.log(`Referral noted: User ${userId} was referred by ${referrerId}`);
-}
-
 
     // Update last active and save
     users[userId].lastActive = new Date().toLocaleDateString('en-US');
