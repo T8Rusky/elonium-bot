@@ -487,35 +487,14 @@ bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg, match) => {
     );
 });
 
-    // Handle referral
-    if (referrerId && referrerId !== userId && !users[userId].referredBy) {
-        if (!users[referrerId]) {
-            // Create referrer user if they don't exist (e.g., deep link with non-existent referrer)
-            users[referrerId] = {
-                id: referrerId,
-                first_name: 'Unknown', // Can't fetch directly from ID without specific API calls or past data
-                username: 'Unknown',
-                language_code: 'en',
-                totalRewards: 0,
-                modulesCompleted: 0,
-                invites: 0,
-                referredBy: null,
-                lastActive: 'Never',
-                verified: false, // Default to false for new referrer placeholder
-            };
-        }
+   // Referral placeholder — full system coming in Phase 2
+if (referrerId && referrerId !== userId) {
+    bot.sendMessage(chatId, '📩 Referral noted. Referral rewards will be activated in Phase 2.');
 
-        users[userId].referredBy = referrerId;
-        users[referrerId].invites = (users[referrerId].invites || 0) + 1;
-        users[referrerId].totalRewards = (users[referrerId].totalRewards || 0) + 10;
-        users[referrerId].lastActive = new Date().toLocaleDateString('en-US');
+    // Optional: log for manual review later
+    console.log(`Referral noted: User ${userId} was referred by ${referrerId}`);
+}
 
-        try {
-            await bot.sendMessage(referrerId, `🎉 You earned 10 $ELONI!\nUser ${msg.from.first_name || userId} joined using your invite link.`);
-        } catch (error) {
-            console.error(`Error sending referral message to ${referrerId}:`, error.message);
-        }
-    }
 
     // Update last active and save
     users[userId].lastActive = new Date().toLocaleDateString('en-US');
