@@ -169,7 +169,7 @@ bot.on('message', (msg) => {
 
 // --- New Member Group Verification ---
 bot.on('new_chat_members', async (msg) => {
-    const chatId = msg.chat.id;
+    const chatId = msg.chat.id.toString();
     const newMembers = msg.new_chat_members;
 
     if (!newMembers || newMembers.length === 0) return;
@@ -178,9 +178,10 @@ bot.on('new_chat_members', async (msg) => {
         const userId = member.id.toString();
         const isAdmin = ADMIN_IDS.includes(userId);
 
-        // Ignore the bot itself joining or admins
-        if (userId === bot.id.toString() || isAdmin) {
-            if (member.is_bot && userId !== bot.id.toString()) {
+        // Safely check bot ID or admin status
+        const botId = bot?.id ? bot.id.toString() : null; // Use optional chaining and fallback
+        if (userId === botId || isAdmin) {
+            if (member.is_bot && userId !== botId) {
                 // If another bot joins and it's not our bot, kick it immediately
                 try {
                     await bot.kickChatMember(chatId, userId);
