@@ -424,23 +424,21 @@ bot.onText(/\/restart/, (msg) => {
 });
 
 // Command: /start
-bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg) => {
+bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg, match) => {
     const chatId = msg.chat.id.toString();
     const userId = msg.from.id.toString();
+    const referrerId = match && match[1];
     const isAdmin = ADMIN_IDS.includes(userId);
 
-    // Check verification only for non-admins in groups/supergroups
-    if (!users[userId]?.verified && (msg.chat.type === 'group' || msg.chat.type === 'supergroup') && !isAdmin) {
-        bot.sendMessage(chatId, `🔒 You must complete the group verification process first! Please check the welcome message sent when you joined or contact an admin for assistance.`, {
-            reply_to_message_id: msg.message_id
-        });
-        return;
+    if (botState.maintenanceMode && !isAdmin) {
+        return bot.sendMessage(chatId, '⚙️ Bot is in maintenance mode. Please try again later.');
     }
 
-    // Maintenance mode check for non-admins
-    if (botState.maintenanceMode && !isAdmin) {
-        bot.sendMessage(chatId, '⚙️ Bot is in maintenance mode. Please try again later.');
-        return;
+    // Human verification check (for group users)
+    if (!users[userId]?.verified && (msg.chat.type === 'group' || msg.chat.type === 'supergroup') && !isAdmin) {
+        return bot.sendMessage(chatId, '🔒 You must complete the group verification process first! Please check the welcome message sent when you joined or contact an admin for assistance.', {
+            reply_to_message_id: msg.message_id
+        });
     }
 
     // Initialize or update user
@@ -457,19 +455,45 @@ bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg) => {
             lastActive: new Date().toLocaleDateString('en-US'),
             verified: false,
         };
-        saveUsers();
     } else {
         users[userId].first_name = msg.from.first_name;
         users[userId].username = msg.from.username;
         users[userId].language_code = msg.from.language_code;
-        saveUsers();
     }
 
-    // Update last active
     users[userId].lastActive = new Date().toLocaleDateString('en-US');
     saveUsers();
 
-    // Send welcome message (original style)
+    // Handle referral
+    if (referrerId && referrerId !== userId && !users[userId].referredBy) {
+        if (!users[referrerId]) {
+            users[referrerId] = {
+                id: referrerId,
+                first_name: 'Unknown',
+                username: 'Unknown',
+                language_code: 'en',
+                totalRewards: 0,
+                modulesCompleted: 0,
+                invites: 0,
+                referredBy: null,
+                lastActive: 'Never',
+                verified: false,
+            };
+        }
+
+        users[userId].referredBy = referrerId;
+        users[referrerId].invites = (users[referrerId].invites || 0) + 1;
+        users[referrerId].totalRewards = (users[referrerId].totalRewards || 0) + 10;
+        users[referrerId].lastActive = new Date().toLocaleDateString('en-US');
+
+        try {
+            await bot.sendMessage(referrerId, `🎉 You earned 10 $ELONI!\nUser ${msg.from.first_name || userId} joined using your invite link.`);
+        } catch (error) {
+            console.error(`Error sending referral message to ${referrerId}:`, error.message);
+        }
+    }
+
+    // Send welcome message
     bot.sendMessage(
         chatId,
         `🌐 Welcome to Elonium AI\nYou're now part of the next-gen AI x DeFi revolution on Solana.\n\n🚀 Earn $ELONI\n📚 Learn & grow with AI modules\n🔒 Stake, vote, and shape the future\n🌟 Early supporters like you will be remembered\n\n🔗 Explore: https://eloniumai.io | https://twitter.com/EloniumAI`,
@@ -485,15 +509,6 @@ bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg) => {
         }
     );
 });
-
-// Human verification check for group interactions (handled by new_chat_members for new members)
-// If a user attempts /start in a group and is not verified, prompt them to complete group verification
-if (!users[userId]?.verified && (msg.chat.type === 'group' || msg.chat.type === 'supergroup')) {
-    bot.sendMessage(chatId, `🔒 You must complete the group verification process first! Please check the welcome message sent when you joined or contact an admin for assistance.`, {
-        reply_to_message_id: msg.message_id
-    });
-    return; // Halt further processing until verified
-}
 
     // Handle referral
     if (referrerId && referrerId !== userId && !users[userId].referredBy) {
