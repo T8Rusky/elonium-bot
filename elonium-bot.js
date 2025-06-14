@@ -424,10 +424,9 @@ bot.onText(/\/restart/, (msg) => {
 });
 
 // Command: /start
-bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg, match) => {
+bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg) => {
     const chatId = msg.chat.id.toString();
     const userId = msg.from.id.toString();
-    const referrerId = match[1];
     const isAdmin = ADMIN_IDS.includes(userId);
 
     // Check verification only for non-admins in groups/supergroups
@@ -458,40 +457,11 @@ bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg, match) => {
             lastActive: new Date().toLocaleDateString('en-US'),
             verified: false,
         };
-        saveUsers(); // Save new user immediately
+        saveUsers();
     } else {
-        // Update user info for existing users
         users[userId].first_name = msg.from.first_name;
         users[userId].username = msg.from.username;
         users[userId].language_code = msg.from.language_code;
-        saveUsers();
-    }
-
-    // Handle referral
-    if (referrerId && referrerId !== userId && !users[userId].referredBy) {
-        if (!users[referrerId]) {
-            users[referrerId] = {
-                id: referrerId,
-                first_name: 'Unknown',
-                username: 'Unknown',
-                language_code: 'en',
-                totalRewards: 0,
-                modulesCompleted: 0,
-                invites: 0,
-                referredBy: null,
-                lastActive: 'Never',
-                verified: false,
-            };
-        }
-        users[userId].referredBy = referrerId;
-        users[referrerId].invites = (users[referrerId].invites || 0) + 1;
-        users[referrerId].totalRewards = (users[referrerId].totalRewards || 0) + 10;
-        users[referrerId].lastActive = new Date().toLocaleDateString('en-US');
-        try {
-            await bot.sendMessage(referrerId, `🎉 You earned 10 $ELONI!\nUser ${msg.from.first_name || userId} joined using your invite link.`);
-        } catch (error) {
-            console.error(`Error sending referral message to ${referrerId}:`, error.message);
-        }
         saveUsers();
     }
 
@@ -499,7 +469,7 @@ bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg, match) => {
     users[userId].lastActive = new Date().toLocaleDateString('en-US');
     saveUsers();
 
-    // Send welcome message
+    // Send welcome message (original style)
     bot.sendMessage(
         chatId,
         `🌐 Welcome to Elonium AI\nYou're now part of the next-gen AI x DeFi revolution on Solana.\n\n🚀 Earn $ELONI\n📚 Learn & grow with AI modules\n🔒 Stake, vote, and shape the future\n🌟 Early supporters like you will be remembered\n\n🔗 Explore: https://eloniumai.io | https://twitter.com/EloniumAI`,
