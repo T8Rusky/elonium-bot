@@ -596,6 +596,7 @@ bot.onText(/\/help/, (msg) => {
   /help - Show this menu
   /reward - Claim daily $ELONI
   /nextclaim - Check next claim time
+  /Verify - Verify User
   /stats - Your stats
   /register - Register your wallet (currently ${botState.registerEnabled ? 'enabled' : 'disabled'})
   /learn - Learn-to-Earn (coming soon)
@@ -806,7 +807,7 @@ bot.onText(/\/invite/, (msg) => {
             parse_mode: 'Markdown',
             reply_markup: {
                 keyboard: [
-                    ['/links', '/invite'],
+                    ['/Verify', '/links', '/invite'],
                     ['/help', '/learn'],
                     ['/reward', '/stats'],
                 ],
@@ -884,7 +885,7 @@ bot.onText(/\/links/, (msg) => {
     bot.sendMessage(chatId, linksMessage, {
         reply_markup: {
             keyboard: [
-                ['/links', '/invite'],
+                ['/Verify','/links', '/invite'],
                 ['/help', '/learn'],
                 ['/reward', '/stats'],
             ],
@@ -895,30 +896,25 @@ bot.onText(/\/links/, (msg) => {
 
 // Handle Unknown Commands
 bot.onText(/^\/\w+/, (msg) => {
-    const userId = msg.from.id.toString();
-    const chatId = msg.chat.id.toString();
-    const isAdmin = ADMIN_IDS.includes(userId);
+  const chatId = msg.chat.id.toString();
+  const userId = msg.from.id.toString();
+  const isAdmin = ADMIN_IDS.includes(userId);
 
-    if (botState.maintenanceMode && !isAdmin) return;
+  if (botState.maintenanceMode && !isAdmin) return;
 
-    const command = msg.text.split(' ')[0];
-    const knownCommands = [
-        '/start', '/help', '/reward', '/nextclaim', '/stats', '/register', '/learn', '/id',
-        '/invite', '/links',
-        // Admin commands
-        '/exportcsv', '/whitelist', '/backuplist', '/snapshot',
-        '/togglemaintenance', '/status', '/shutdown', '/restart',
-        '/closewhitelist', '/openwhitelist', '/toggleregister',
-    ];
+  const command = msg.text.split(' ')[0];
+  const knownCommands = [
+    '/start', '/help', '/reward', '/nextclaim', '/stats', '/register', '/learn', '/id',
+    '/invite', '/links', '/verify', // ✅ fixed comma + casing
+    // Admin commands
+    '/exportcsv', '/whitelist', '/backuplist', '/snapshot',
+    '/togglemaintenance', '/status', '/shutdown', '/restart',
+    '/closewhitelist', '/openwhitelist', '/toggleregister'
+  ];
 
-    if (!knownCommands.includes(command)) {
-        bot.sendMessage(chatId, '🤖 Unknown command. Use /help to see available options.');
-    }
-});
-
-// Error Handling
-bot.on('polling_error', (error) => {
-    console.error('❌ Polling error:', error.message);
+  if (!knownCommands.includes(command)) {
+    bot.sendMessage(chatId, '🤖 Unknown command. Use /help to see available options.');
+  }
 });
 
 console.log('✅ EloniumAI bot is live!');
