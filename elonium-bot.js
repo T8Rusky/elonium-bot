@@ -375,6 +375,35 @@ bot.onText(/\/togglemaintenance/, (msg) => {
     bot.sendMessage(msg.chat.id, botState.maintenanceMode ? '⚙️ Maintenance mode enabled.' : '✅ Maintenance mode disabled.');
 });
 
+// Command: /downloadbackup
+bot.onText(/\/downloadbackup/, (msg) => {
+  const chatId = msg.chat.id.toString();
+  const userId = msg.from.id.toString();
+
+  // Only allow admins
+  if (!ADMIN_IDS.includes(userId)) return;
+
+  const fs = require('fs');
+  const path = require('path');
+  const backupDir = path.resolve(__dirname);
+
+  const backups = fs.readdirSync(backupDir).filter(name =>
+    name.startsWith('backup-user-data') && name.endsWith('.json')
+  );
+
+  if (backups.length === 0) {
+    return bot.sendMessage(chatId, '⚠️ No backup files found.');
+  }
+
+  const latestBackup = backups.sort().reverse()[0];
+  const filePath = path.join(backupDir, latestBackup);
+
+  bot.sendDocument(chatId, filePath, {}, {
+    filename: latestBackup,
+    contentType: 'application/json'
+  });
+});
+
 // Command: /status (Admin only)
 bot.onText(/\/status/, (msg) => {
     const userId = msg.from.id.toString();

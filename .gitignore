@@ -1,1 +1,4 @@
-node_modules\n.env\nbackup-user-data-*.json\nuser-data.json
+node_modules/
+.env
+user-data.json
+backup-user-data-*.json
