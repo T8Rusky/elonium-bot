@@ -670,6 +670,7 @@ bot.onText(/\/help/, (msg) => {
   /status - Show bot status
   /shutdown - Shutdown bot
   /restart - Restart bot
+  /downloadbackup - Downloads latest user-data.js
   /closewhitelist - Close whitelist phase 1
   /openwhitelist - Reopen whitelist phase 1
   /toggleregister - Toggle register command status`;
