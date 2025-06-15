@@ -425,67 +425,103 @@ bot.onText(/\/restart/, (msg) => {
 
 // Command: /start
 bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg, match) => {
-    const chatId = msg.chat.id.toString();
-    const userId = msg.from.id.toString();
-    const isAdmin = ADMIN_IDS.includes(userId);
+  const chatId = msg.chat.id.toString();
+  const userId = msg.from.id.toString();
+  const isAdmin = ADMIN_IDS.includes(userId);
 
-    if (botState.maintenanceMode && !isAdmin) {
-        return bot.sendMessage(chatId, '⚙️ Bot is in maintenance mode. Please try again later.');
-    }
+  // Block non-admins if bot is in maintenance mode
+  if (botState.maintenanceMode && !isAdmin) {
+    return bot.sendMessage(chatId, '⚙️ The bot is currently under maintenance. Please try again later.');
+  }
 
-    // Human verification check (for group users)
-    if (!users[userId]?.verified && (msg.chat.type === 'group' || msg.chat.type === 'supergroup') && !isAdmin) {
-        bot.sendMessage(chatId, '🔒 You must complete the group verification process first! Please check the welcome message sent when you joined or contact an admin for assistance.', {
-            reply_to_message_id: msg.message_id
-        });
-        return;
-    }
-
-    // Initialize or update user
-    if (!users[userId]) {
-        users[userId] = {
-            id: userId,
-            first_name: msg.from.first_name,
-            username: msg.from.username,
-            language_code: msg.from.language_code,
-            totalRewards: 0,
-            modulesCompleted: 0,
-            invites: 0,
-            referredBy: null,
-            lastActive: new Date().toLocaleDateString('en-US'),
-            verified: false,
-        };
-    } else {
-        users[userId].first_name = msg.from.first_name;
-        users[userId].username = msg.from.username;
-        users[userId].language_code = msg.from.language_code;
-    }
-
-    users[userId].lastActive = new Date().toLocaleDateString('en-US');
-    saveUsers();
-
-    // Placeholder for referral system (Phase 2)
-    const referrerId = match && match[1];
-    if (referrerId && referrerId !== userId) {
-        bot.sendMessage(chatId, '📩 Referral noted. Referral rewards will be active in Phase 2.');
-    }
-
-    // Send welcome message
-    bot.sendMessage(
-        chatId,
-        `🌐 Welcome to Elonium AI\nYou're now part of the next-gen AI x DeFi revolution on Solana.\n\n🚀 Earn $ELONI\n📚 Learn & grow with AI modules\n🔒 Stake, vote, and shape the future\n🌟 Early supporters like you will be remembered\n\n🔗 Explore: https://eloniumai.io | https://twitter.com/EloniumAI`,
-        {
-            reply_markup: {
-                keyboard: [
-                    ['/help', '/learn'],
-                    ['/reward', '/stats'],
-                    ['/register', '/links'],
-                ],
-                resize_keyboard: true,
-            },
-        }
+  // Manual verification required in group chats
+  if (
+    (msg.chat.type === 'group' || msg.chat.type === 'supergroup') &&
+    (!users[userId]?.verified || users[userId].verified !== true) &&
+    !isAdmin
+  ) {
+    return bot.sendMessage(
+      chatId,
+      '🔒 You must complete verification to use the bot.\nCheck the pinned message or ask an admin for help.',
+      { reply_to_message_id: msg.message_id }
     );
+  }
+
+  // First-time user setup
+  if (!users[userId]) {
+    users[userId] = {
+      id: userId,
+      first_name: msg.from.first_name,
+      username: msg.from.username,
+      language_code: msg.from.language_code,
+      totalRewards: 0,
+      modulesCompleted: 0,
+      invites: 0,
+      referredBy: null,
+      lastActive: new Date().toLocaleDateString('en-US'),
+      verified: false, // Still needs manual verification
+    };
+  } else {
+    // Update user details if rejoining
+    users[userId].first_name = msg.from.first_name;
+    users[userId].username = msg.from.username;
+    users[userId].language_code = msg.from.language_code;
+  }
+
+  // Update activity timestamp
+  users[userId].lastActive = new Date().toLocaleDateString('en-US');
+  saveUsers();
+
+  // Log referral for Phase 2
+  const referrerId = match && match[1];
+  if (referrerId && referrerId !== userId && !users[userId].referredBy) {
+    users[userId].referredBy = referrerId;
+    bot.sendMessage(chatId, '📩 Referral noted. Referral rewards will activate in Phase 2.');
+  }
+
+  // Send welcome message
+  bot.sendMessage(chatId,
+    `🌐 *Welcome to Elonium AI*\n\n` +
+    `You're now part of the next-gen *AI x DeFi* revolution on *Solana*.\n\n` +
+    `🚀 Earn *$ELONI*\n` +
+    `📚 Learn & grow with *AI modules*\n` +
+    `🔒 Stake, vote, and shape the future\n` +
+    `🌟 Early supporters like you will be remembered\n\n` +
+    `🔗 [Explore the site](https://eloniumai.io)\n` +
+    `🐦 [Follow us on Twitter](https://twitter.com/EloniumAI)`,
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        keyboard: [
+          ['/help', '/learn'],
+          ['/reward', '/stats'],
+          ['/register', '/links'],
+        ],
+        resize_keyboard: true,
+      },
+    }
+  );
 });
+
+// Command: /Verify
+bot.onText(/\/verify/, (msg) => {
+  const chatId = msg.chat.id.toString();
+  const userId = chatId;
+
+  if (!users[userId]) {
+    return bot.sendMessage(chatId, '⚠️ Please use /start before verifying.');
+  }
+
+  if (users[userId].verified) {
+    return bot.sendMessage(chatId, '✅ You are already verified.');
+  }
+
+  users[userId].verified = true;
+  saveUserData();
+
+  bot.sendMessage(chatId, '✅ Verification complete! You now have full access to the bot.');
+});
+
 
 // Command: /register <wallet>
 bot.onText(/\/register (.+)/, (msg, match) => {
@@ -801,28 +837,31 @@ bot.onText(/\/verifystatus/, (msg) => {
   const chatId = msg.chat.id.toString();
   const userId = msg.from.id.toString();
 
-  // Only allow admins to use this
+  // Only allow admins to run this command
   if (!ADMIN_IDS.includes(userId)) return;
 
   const totalUsers = Object.keys(users).length;
-  const verifiedUsers = Object.values(users).filter(user => user.verified).length;
+  const verifiedUsers = Object.values(users).filter(u => u.verified).length;
   const unverifiedUsers = totalUsers - verifiedUsers;
 
-  // Find the latest backup timestamp (if available)
+  // Find the latest backup file (optional)
   const fs = require('fs');
   const path = require('path');
   const backupDir = path.resolve(__dirname);
-  const backups = fs.readdirSync(backupDir).filter(f => f.startsWith('backup-user-data') && f.endsWith('.json'));
-  const latestBackup = backups.sort().reverse()[0] || 'No backup found';
+  const backupFiles = fs.readdirSync(backupDir).filter(name =>
+    name.startsWith('backup-user-data') && name.endsWith('.json')
+  );
+  const latestBackup = backupFiles.sort().reverse()[0] || 'No backups found';
 
-  const response = `📊 *Verification Status*\n\n` +
-                   `👥 Total Users: *${totalUsers}*\n` +
-                   `✅ Verified: *${verifiedUsers}*\n` +
-                   `🔒 Unverified: *${unverifiedUsers}*\n` +
-                   `💾 Latest Backup: *${latestBackup}*`;
+  const statusMessage = `📊 *Verification Status*\n\n` +
+                        `👥 Total Users: *${totalUsers}*\n` +
+                        `✅ Verified: *${verifiedUsers}*\n` +
+                        `🔒 Unverified: *${unverifiedUsers}*\n` +
+                        `💾 Latest Backup: *${latestBackup}*`;
 
-  bot.sendMessage(chatId, response, { parse_mode: 'Markdown' });
+  bot.sendMessage(chatId, statusMessage, { parse_mode: 'Markdown' });
 });
+
 
 // Command: /links
 bot.onText(/\/links/, (msg) => {
