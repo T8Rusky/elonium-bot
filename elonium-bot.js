@@ -550,10 +550,9 @@ bot.onText(/\/help/, (msg) => {
     if (botState.maintenanceMode && !isAdmin) return;
 
     // Users must be verified to get full help or interact
-    if (!users[userId] || !users[userId].verified) {
-        return bot.sendMessage(chatId, '🔒 Please start the bot and complete verification first. Type /start');
-    }
-
+   if (!users[userId] || (!users[userId].verified && !ADMIN_IDS.includes(userId))) {
+  return bot.sendMessage(chatId, '🔒 Please start the bot and complete verification first. Type /start');
+}
 
     let helpText = `Commands:
   /start - Start the bot
