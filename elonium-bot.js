@@ -422,7 +422,6 @@ bot.onText(/\/restart/, (msg) => {
     saveBotState();
     setTimeout(() => process.exit(0), 1000);
 });
-
 // Command: /start
 bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg, match) => {
   const chatId = msg.chat.id.toString();
@@ -442,7 +441,7 @@ bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg, match) => {
   ) {
     return bot.sendMessage(
       chatId,
-      '🔒 You must complete verification to use the bot.\nCheck the pinned message or ask an admin for help.',
+      '🔒 You must complete verification by typing /verify to use the bot.\nCheck the pinned message or ask an admin for help.',
       { reply_to_message_id: msg.message_id }
     );
   }
@@ -459,50 +458,50 @@ bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg, match) => {
       invites: 0,
       referredBy: null,
       lastActive: new Date().toLocaleDateString('en-US'),
-      verified: false, // Still needs manual verification
+      verified: false,
     };
   } else {
-    // Update user details if rejoining
+    // Update existing user info
     users[userId].first_name = msg.from.first_name;
     users[userId].username = msg.from.username;
     users[userId].language_code = msg.from.language_code;
   }
 
-  // Update activity timestamp
   users[userId].lastActive = new Date().toLocaleDateString('en-US');
   saveUsers();
 
-  // Log referral for Phase 2
+  // Referral check
   const referrerId = match && match[1];
   if (referrerId && referrerId !== userId && !users[userId].referredBy) {
     users[userId].referredBy = referrerId;
     bot.sendMessage(chatId, '📩 Referral noted. Referral rewards will activate in Phase 2.');
   }
 
-// Send welcome message
-bot.sendMessage(chatId,
-  `🌐 *Welcome to Elonium AI*\n\n` +
-  `You're now part of the next-gen *AI x DeFi* revolution on *Solana*.\n\n` +
-  `🚀 Earn *$ELONI*\n` +
-  `📚 Learn & grow with *AI modules*\n` +
-  `🔒 Stake, vote, and shape the future\n` +
-  `🌟 Early supporters like you will be remembered\n\n` +
-  `🔗 [Explore the site](https://eloniumai.io)\n` +
-  `🐦 [Follow us on Twitter](https://twitter.com/EloniumAI)\n\n` +
-  `✅ *Please verify by typing /verify to unlock full access to the bot.*`,
-  {
-    parse_mode: 'Markdown',
-    reply_markup: {
-      keyboard: [
-        ['/help', '/learn'],
-        ['/reward', '/stats'],
-        ['/register', '/links'],
-      ],
-      resize_keyboard: true,
-    },
-  }
-);
-
+  // Send welcome message
+  bot.sendMessage(chatId,
+    `🌐 *Welcome to Elonium AI*\n\n` +
+    `You're now part of the next-gen *AI x DeFi* revolution on *Solana*.\n\n` +
+    `🚀 Earn *$ELONI*\n` +
+    `📚 Learn & grow with *AI modules*\n` +
+    `🔒 Stake, vote, and shape the future\n` +
+    `🌟 Early supporters like you will be remembered\n\n` +
+    `🔗 [Explore the site](https://eloniumai.io)\n` +
+    `🐦 [Follow us on Twitter](https://twitter.com/EloniumAI)\n\n` +
+    `✅ *Please verify by typing /verify to unlock full access to the bot.*`,
+    {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        keyboard: [
+          ['/help', '/learn'],
+          ['/reward', '/stats'],
+          ['/register', '/links'],
+          ['/verify']
+        ],
+        resize_keyboard: true,
+      },
+    }
+  );
+}); // ✅ This properly closes the handler
 
 // Command: /Verify
 bot.onText(/\/verify/, (msg) => {
@@ -596,7 +595,7 @@ bot.onText(/\/help/, (msg) => {
   /help - Show this menu
   /reward - Claim daily $ELONI
   /nextclaim - Check next claim time
-  /Verify - Verify User
+  /verify - Verify User
   /stats - Your stats
   /register - Register your wallet (currently ${botState.registerEnabled ? 'enabled' : 'disabled'})
   /learn - Learn-to-Earn (coming soon)
@@ -885,7 +884,7 @@ bot.onText(/\/links/, (msg) => {
     bot.sendMessage(chatId, linksMessage, {
         reply_markup: {
             keyboard: [
-                ['/Verify','/links', '/invite'],
+                ['/verify', '/links', '/invite'],
                 ['/help', '/learn'],
                 ['/reward', '/stats'],
             ],
