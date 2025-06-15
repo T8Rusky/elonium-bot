@@ -487,28 +487,6 @@ bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg, match) => {
     );
 });
 
-
-    // Update last active and save
-    users[userId].lastActive = new Date().toLocaleDateString('en-US');
-    saveUsers();
-
-    // Send welcome message (only if verified or in private chat after verification)
-    bot.sendMessage(
-        chatId,
-        `🌐 Welcome to Elonium AI\nYou're now part of the next-gen AI x DeFi revolution on Solana.\n\n🚀 Earn $ELONI\n📚 Learn & grow with AI modules\n🔒 Stake, vote, and shape the future\n🌟 Early supporters like you will be remembered\n\n🔗 Explore: https://eloniumai.io | https://twitter.com/EloniumAI`,
-        {
-            reply_markup: {
-                keyboard: [
-                    ['/help', '/learn'],
-                    ['/reward', '/stats'],
-                    ['/register', '/links'],
-                ],
-                resize_keyboard: true,
-            },
-        }
-    );
-});
-
 // Command: /register <wallet>
 bot.onText(/\/register (.+)/, (msg, match) => {
     const userId = msg.from.id.toString();
