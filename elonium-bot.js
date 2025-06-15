@@ -796,6 +796,34 @@ bot.onText(/\/learn/, (msg) => {
     );
 });
 
+// Command: /verifystatus
+bot.onText(/\/verifystatus/, (msg) => {
+  const chatId = msg.chat.id.toString();
+  const userId = msg.from.id.toString();
+
+  // Only allow admins to use this
+  if (!ADMIN_IDS.includes(userId)) return;
+
+  const totalUsers = Object.keys(users).length;
+  const verifiedUsers = Object.values(users).filter(user => user.verified).length;
+  const unverifiedUsers = totalUsers - verifiedUsers;
+
+  // Find the latest backup timestamp (if available)
+  const fs = require('fs');
+  const path = require('path');
+  const backupDir = path.resolve(__dirname);
+  const backups = fs.readdirSync(backupDir).filter(f => f.startsWith('backup-user-data') && f.endsWith('.json'));
+  const latestBackup = backups.sort().reverse()[0] || 'No backup found';
+
+  const response = `📊 *Verification Status*\n\n` +
+                   `👥 Total Users: *${totalUsers}*\n` +
+                   `✅ Verified: *${verifiedUsers}*\n` +
+                   `🔒 Unverified: *${unverifiedUsers}*\n` +
+                   `💾 Latest Backup: *${latestBackup}*`;
+
+  bot.sendMessage(chatId, response, { parse_mode: 'Markdown' });
+});
+
 // Command: /links
 bot.onText(/\/links/, (msg) => {
     const userId = msg.from.id.toString();
