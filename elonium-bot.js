@@ -479,29 +479,30 @@ bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg, match) => {
     bot.sendMessage(chatId, '📩 Referral noted. Referral rewards will activate in Phase 2.');
   }
 
-  // Send welcome message
-  bot.sendMessage(chatId,
-    `🌐 *Welcome to Elonium AI*\n\n` +
-    `You're now part of the next-gen *AI x DeFi* revolution on *Solana*.\n\n` +
-    `🚀 Earn *$ELONI*\n` +
-    `📚 Learn & grow with *AI modules*\n` +
-    `🔒 Stake, vote, and shape the future\n` +
-    `🌟 Early supporters like you will be remembered\n\n` +
-    `🔗 [Explore the site](https://eloniumai.io)\n` +
-    `🐦 [Follow us on Twitter](https://twitter.com/EloniumAI)`,
-    {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        keyboard: [
-          ['/help', '/learn'],
-          ['/reward', '/stats'],
-          ['/register', '/links'],
-        ],
-        resize_keyboard: true,
-      },
-    }
-  );
-});
+// Send welcome message
+bot.sendMessage(chatId,
+  `🌐 *Welcome to Elonium AI*\n\n` +
+  `You're now part of the next-gen *AI x DeFi* revolution on *Solana*.\n\n` +
+  `🚀 Earn *$ELONI*\n` +
+  `📚 Learn & grow with *AI modules*\n` +
+  `🔒 Stake, vote, and shape the future\n` +
+  `🌟 Early supporters like you will be remembered\n\n` +
+  `🔗 [Explore the site](https://eloniumai.io)\n` +
+  `🐦 [Follow us on Twitter](https://twitter.com/EloniumAI)\n\n` +
+  `✅ *Please verify by typing /verify to unlock full access to the bot.*`,
+  {
+    parse_mode: 'Markdown',
+    reply_markup: {
+      keyboard: [
+        ['/help', '/learn'],
+        ['/reward', '/stats'],
+        ['/register', '/links'],
+      ],
+      resize_keyboard: true,
+    },
+  }
+);
+
 
 // Command: /Verify
 bot.onText(/\/verify/, (msg) => {
@@ -517,7 +518,7 @@ bot.onText(/\/verify/, (msg) => {
   }
 
   users[userId].verified = true;
-  saveUserData();
+  saveUsers();
 
   bot.sendMessage(chatId, '✅ Verification complete! You now have full access to the bot.');
 });
