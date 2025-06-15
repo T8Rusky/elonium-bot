@@ -38,16 +38,44 @@ const verificationTimeouts = {}; // Stores setTimeout IDs for unverified users
 
 // --- File Operations ---
 const loadUsers = () => {
-    const filePath = path.join(__dirname, USERS_FILE);
-    if (fs.existsSync(filePath)) {
-        try {
-            users = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-            console.log('✅ Loaded user data from user-data.json');
-        } catch (error) {
-            console.error('❌ Error loading user-data.json:', error.message);
-            users = {}; // Fallback to empty if corrupted
-        }
+  const filePath = path.join(__dirname, USERS_FILE);
+  if (!fs.existsSync(filePath)) {
+    console.warn('⚠️ user-data.json not found. Starting with empty data.');
+    users = {};
+    return;
+  }
+
+  try {
+    users = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    console.log('✅ Loaded user data from user-data.json');
+  } catch (error) {
+    console.error('❌ Error loading user-data.json:', error.message);
+
+    // Attempt auto-recovery
+    const backups = fs.readdirSync(__dirname)
+      .filter(name => name.startsWith('backup-user-data') && name.endsWith('.json'))
+      .sort()
+      .reverse(); // newest first
+
+    if (backups.length === 0) {
+      console.error('❌ No backups available. Starting with empty user data.');
+      users = {};
+      return;
     }
+
+    const latestBackup = backups[0];
+    const backupPath = path.join(__dirname, latestBackup);
+    console.warn(`🔁 Attempting to recover from backup: ${latestBackup}`);
+
+    try {
+      users = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
+      fs.writeFileSync(filePath, JSON.stringify(users, null, 2));
+      console.log(`✅ Recovered from ${latestBackup} and restored to user-data.json`);
+    } catch (backupError) {
+      console.error(`❌ Failed to load backup: ${backupError.message}`);
+      users = {};
+    }
+  }
 };
 
 const saveUsers = () => {
